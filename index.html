@@ -371,6 +371,79 @@
             }
         }
 
+        /* ===================== SKIP PUZZLE BUTTON ===================== */
+        .skip-puzzle-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            color: #c41e3a;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 50;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            opacity: 0;
+            animation: hintFadeIn 0.5s 1.5s ease forwards;
+            display: none;
+        }
+
+        .skip-puzzle-btn:hover {
+            background: rgba(196, 30, 58, 0.12);
+            border-color: rgba(196, 30, 58, 0.3);
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(196, 30, 58, 0.15);
+        }
+
+        .skip-puzzle-btn:active {
+            transform: scale(0.97);
+        }
+
+        .skip-puzzle-btn.visible {
+            display: block;
+        }
+
+        .skip-puzzle-btn.hidden {
+            display: none !important;
+        }
+
+        /* Continue button after skip */
+        .continue-btn {
+            display: none;
+            margin-top: 16px;
+            background: linear-gradient(135deg, #f5576c 0%, #ff6b9d 100%);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 10px 28px;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 4px 18px rgba(245, 87, 108, 0.35);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .continue-btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 6px 24px rgba(245, 87, 108, 0.45);
+        }
+
+        .continue-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .continue-btn.visible {
+            display: inline-block;
+        }
+
         /* ===================== RESPONSIVE ===================== */
         @media (max-width: 600px) {
             body {
@@ -384,6 +457,13 @@
 
             .puzzle-hint {
                 font-size: 13px;
+            }
+
+            .skip-puzzle-btn {
+                bottom: 14px;
+                right: 14px;
+                font-size: 11px;
+                padding: 6px 12px;
             }
         }
 
@@ -449,10 +529,14 @@
             </div>
         </div>
         <p class="puzzle-hint">🧩 Parçaları kaydırarak resmi tamamla</p>
+        <button class="continue-btn" id="continueBtn" onclick="window.location.href='card.html'">💌 Devam Et</button>
         <div class="redirect-msg" id="redirectMsg">
             <p>💌 Sürpriz hazırlanıyor<span class="redirect-dots"></span></p>
         </div>
     </div>
+
+    <!-- SKIP PUZZLE BUTTON -->
+    <button class="skip-puzzle-btn" id="skipPuzzleBtn">🧩 Puzzle'ı Atla</button>
 
     <script>
         // ==================== ENVELOPE LOGIC ====================
@@ -460,6 +544,9 @@
         const envelope = document.getElementById('envelope');
         const puzzleStage = document.getElementById('puzzleStage');
         const puzzleGrid = document.getElementById('puzzleGrid');
+
+        const skipPuzzleBtn = document.getElementById('skipPuzzleBtn');
+        const continueBtn = document.getElementById('continueBtn');
 
         envelope.addEventListener('click', () => {
             envelope.style.pointerEvents = 'none';
@@ -473,6 +560,7 @@
                     setTimeout(() => {
                         envelopeStage.style.display = 'none';
                         puzzleStage.classList.add('visible');
+                        skipPuzzleBtn.classList.add('visible');
                     }, 450);
                 }, 700);
             }, 380);
@@ -552,11 +640,14 @@
             return currentState.every((tile, index) => tile === solution[index]);
         }
 
-        function onPuzzleSolved() {
+        function onPuzzleSolved(skipped = false) {
             const puzzleContainer = document.getElementById('puzzleContainer');
             const puzzleGridWrap = document.getElementById('puzzleGridWrap');
             const puzzleFullImageOverlay = document.getElementById('puzzleFullImageOverlay');
             const redirectMsg = document.getElementById('redirectMsg');
+
+            // Hide skip button
+            skipPuzzleBtn.classList.add('hidden');
 
             // Show the empty tile's piece
             const emptyTile = puzzleGrid.querySelector('.puzzle-tile.empty');
@@ -587,17 +678,32 @@
             // Confetti celebration
             runConfettiFor(3000);
 
-            // Show redirect message
-            setTimeout(() => {
-                redirectMsg.classList.add('show');
-                animateDots();
-            }, 1200);
+            if (skipped) {
+                // If skipped: show continue button, no auto-redirect
+                setTimeout(() => {
+                    continueBtn.classList.add('visible');
+                }, 1200);
+            } else {
+                // If solved normally: auto-redirect
+                setTimeout(() => {
+                    redirectMsg.classList.add('show');
+                    animateDots();
+                }, 1200);
 
-            // Redirect to card page
-            setTimeout(() => {
-                window.location.href = 'card.html';
-            }, 3500);
+                setTimeout(() => {
+                    window.location.href = 'card.html';
+                }, 3500);
+            }
         }
+
+        // Skip puzzle logic
+        skipPuzzleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Set the puzzle to solved state
+            currentState = [...solution];
+            renderPuzzle();
+            onPuzzleSolved(true);
+        });
 
         // Sparkle effects on tile click
         function createSparkles(x, y) {
